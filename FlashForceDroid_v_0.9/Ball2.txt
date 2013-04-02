@@ -1,0 +1,273 @@
+package  {
+	import flash.display.*;
+	import flash.events.*;
+	import flash.display.Graphics;
+	import flash.display.Shape;
+	import fl.controls.Label;
+	import flash.utils.Timer;
+	import fl.controls.Button;
+	import flash.ui.Mouse;
+	
+	public class Ball2 extends MovieClip{
+       var ballXSpeed:Number = 10; //X Speed of the Ball
+		var ballYSpeed:Number = 10; //Y Speed of the Ball
+		var leftWallHit2:int = 0; //monitors hits in-a-row on left wall
+		var rightWallHit2:int = 0; //monitors hits in-a-row on right wall
+		var topHit2:int = 0; //monitors hits in-a-row on ceiling
+		var bottomHit2:int = 0; //monitors hits in-a-row on floor [probably not needed]
+		var theBackground:MovieClip = new myBackground();
+		var ex:Explode;
+		public var myBall:MovieClip;
+		public var myPaddle:MovieClip;
+		public var evilPaddle:MovieClip;
+		public var evilSight:MovieClip;
+		public var countHit:int;
+		public var hitControl:int = 0;
+		var bricksDestroyed:int = 0;
+		var factor2:Number = 0.8; 
+		var noHurtTimer:Timer = new Timer(500,1);
+		var noHurt:int = 0;
+		var theStage:Stage;
+		var doomCount:int = 0; //zero in game, 1 when someone wins, then reinitialized to zero on restart
+		var winnerLabel:Label = new Label();
+		var killAll:int = 0;
+		var callParts:CallParts;
+		var stuckTimer:Timer = new Timer(250,1);
+		var rebuild:Boolean = false;
+		var ballRef:Ball;
+		var control:int = 0;
+		
+		
+		public function Ball2(paddle:MovieClip,ball:MovieClip,ballR:Ball,ePaddle:MovieClip,stageRef:Stage,eSight:MovieClip) {
+			
+			this.myBall = ball;
+			this.myPaddle = paddle;
+			this.evilPaddle = ePaddle;
+			this.theStage = stageRef;
+			this.evilSight = eSight;
+			this.ballRef = ballR;
+			countHit = 0;
+			addEventListener(Event.ENTER_FRAME, ballMotion2);
+			noHurtTimer.addEventListener(TimerEvent.TIMER_COMPLETE, hurtAgain);
+			stuckTimer.addEventListener(TimerEvent.TIMER_COMPLETE, resetHits);
+			
+		}
+		
+		public function resetHits(event:TimerEvent){
+			topHit2 = 0;
+			bottomHit2 = 0;
+			rightWallHit2 = 0;
+			leftWallHit2 = 0;
+		}
+		
+		public function ballMotion2(event:Event){ //Somewhere the width and height of this object are changed from 18/15 to 550/500!? (around when it hits the bottom at least...?)
+			
+			trace("this is again: " + this);
+			trace("ball2 x: " + this.x);
+			trace("ball2 y: " + this.y);
+			trace("ball2 xSpeed: " + this.ballXSpeed);
+			trace("ball2 ySpeed: " + this.ballYSpeed);
+			trace("stage width " + stage.stageWidth);
+			trace("stage height " + stage.stageHeight);
+			trace("ball2 width " + this.width);
+			trace("ball2 height " + this.height);
+			trace("mywidth " + this.width);
+			trace("myheight " + this.height);
+			trace("ball2 scale x: " + this.scaleX);
+			trace("ball2 scale y: " + this.scaleY);
+			this.x = this.x;
+			this.y = this.y;
+			this.x += ballXSpeed;
+			this.y += ballYSpeed;
+			
+			
+			if (this.hitTestObject(myPaddle)){
+				control = 1;
+				
+			}
+			
+			//collision with evil paddle
+			if (this.hitTestObject(evilPaddle)){
+				control = 2;
+				
+			}
+			
+			//Bouncing the ball off of the walls
+			if(this.x >= stage.stageWidth-this.width){
+				//if the ball hits the right side
+				//of the screen, then bounce off
+				ballXSpeed *= -1;
+				rightWallHit2 += 1;
+				leftWallHit2 = 0;
+				topHit2 = 0;
+				bottomHit2 = 0;
+				stuckTimer.reset();
+				stuckTimer.start();
+				if (rightWallHit2 > 3){
+					stuckHandler4();
+				}
+			}
+			if(this.x <= 0){
+				//if the ball hits the left side
+				//of the screen, then bounce off
+				ballXSpeed *= -1;
+				leftWallHit2 += 1;
+				rightWallHit2 = 0;
+				topHit2 = 0;
+				bottomHit2 = 0;
+				stuckTimer.reset();
+				stuckTimer.start();
+				if (leftWallHit2 > 3){
+					stuckHandler4();
+				}
+			}
+			if(this.y >= stage.stageHeight-this.height){
+				trace("this is at bottomhit: " + this);
+				//if the ball hits the bottom
+				//then bounce up
+				
+				ballYSpeed *= -1;
+				bottomHit2 += 1;
+				topHit2 = 0;
+				if (noHurt == 0){
+				ballRef.enemyScore += 1;
+				//addChild(eScore);
+				callParts = new CallParts((this.x + (this.width/2)),450);
+				addChild(callParts);
+				ballRef.eScore.text = "ENEMY SCORE: " + ballRef.enemyScore;
+					if (ballRef.enemyScore >= 10){
+						ballRef.enemyWin();
+						
+					}
+				}
+				stuckTimer.reset();
+				stuckTimer.start();
+				if (bottomHit2 > 3){
+					stuckHandler6();
+				}
+				noHurtTimer.start();
+				noHurt = 1;
+			}
+			if(this.y <= 50){
+				trace("this is at tophit: " + this);
+				//if the ball hits the top
+				//then bounce down
+				
+				ballYSpeed *= -1;
+				topHit2 += 1;
+				bottomHit2 = 0;
+				//addChild(score);
+				if (noHurt == 0){
+				ballRef.playerScore += 1;
+				callParts = new CallParts((this.x + (this.width/2)),50);
+				addChild(callParts);
+				ballRef.score.text = "PLAYER SCORE: " + ballRef.playerScore;
+					if (ballRef.playerScore >= 10){
+						ballRef.playerWin();
+						
+					}
+				}
+				stuckTimer.reset();
+				stuckTimer.start();
+
+				if (topHit2 > 3){
+					stuckHandler5();
+				}
+				noHurtTimer.start();
+				noHurt = 1;
+			}
+			
+			//collision with paddlw
+			if (this.hitTestObject(myPaddle)){
+				
+				calcBallAngle3();
+			}
+			
+			//collision with evil paddle
+			if (this.hitTestObject(evilPaddle)){
+				
+				calcBallAngle4();
+			}
+			
+			
+		}
+		
+		public function calcBallAngle3(){
+			//ballPosition is the position of the ball is on the paddle
+			var ballPosition:Number = this.x - myPaddle.x;
+			//hitPercent converts ballPosition into a percent
+			//All the way to the left is -.5
+			//All the way to the right is .5
+			//The center is 0
+			var hitPercent:Number = (ballPosition / (myPaddle.width - this.width)) - .5;
+			//Gets the hitPercent and makes it a larger number so the
+			//ball actually bounces
+			ballXSpeed = hitPercent * 10;
+			//Making the ball bounce back up
+			ballYSpeed *= -1;
+			
+		}
+		
+		public function calcBallAngle4(){
+			//ballPosition is the position of the ball is on the paddle
+			var ballPosition:Number = this.x - evilPaddle.x;
+			//hitPercent converts ballPosition into a percent
+			//All the way to the left is -.5
+			//All the way to the right is .5
+			//The center is 0
+			var hitPercent:Number = (ballPosition / (evilPaddle.width - this.width)) - .5;
+			//Gets the hitPercent and makes it a larger number so the
+			//ball actually bounces
+			ballXSpeed = hitPercent * 10;
+			//Making the ball bounce back up
+			ballYSpeed *= -1;
+			
+		}
+		
+		public function stuckHandler4(){
+			trace("stuck 4!");
+			if (rightWallHit2 > 3){
+				this.x -= (this.width + 1);
+				if (control == 1){
+					this.y -= (Math.abs(myPaddle.y - this.y) + 1);
+				}
+				if (control == 2){
+					this.y += (Math.abs(evilPaddle.y - this.y) + 1);
+				}
+			}
+			if (leftWallHit2 > 3){
+				this.x += (this.width + 1);
+				if (control == 1){
+					this.y -= (Math.abs(myPaddle.y - this.y) + 1);
+				}
+				if (control == 2){
+					this.y += (Math.abs(evilPaddle.y - this.y) + 1);
+				}
+			}
+			leftWallHit2 = 0;
+			rightWallHit2 = 0;
+		}
+		
+		public function stuckHandler5(){
+			trace("stuck 5!");
+			this.y += (this.height * 3);
+			topHit2 = 0;
+		}
+		
+		
+		public function stuckHandler6(){
+			trace("stuck 6!");
+			this.y -= (this.height * 3);
+			bottomHit2 = 0;
+		}
+		
+		public function hurtAgain(event:TimerEvent){
+			noHurt = 0;
+			noHurtTimer.reset();
+			
+		}
+		
+
+	}
+	
+}
